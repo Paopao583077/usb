@@ -11,7 +11,8 @@ def run_single_capture(
         sub_folder="enroll",  # 子文件夹：enroll 或 auth
         file_name="capture.pcapng",
         target_size_mb=50,
-        drive_letter="E"
+        drive_letter="E",
+        confirm_callback=None  # GUI模式回调函数
 ):
     """
     执行【单次】抓包与USB流量读写测试（包含枚举阶段捕获）。
@@ -19,6 +20,8 @@ def run_single_capture(
     参数:
     - sub_folder: 子文件夹名称，例如 "enroll" (注册用) 或 "auth" (验证用)
     - file_name: 保存的文件名
+    - confirm_callback: GUI模式回调函数 func(title, message) -> bool
+                        返回True继续，False取消。None则使用input()
     """
 
     # --- 0. 环境检查与路径构建 ---
@@ -55,7 +58,14 @@ def run_single_capture(
 
     # 1. 强制拔出检查
     print("Step 1: 请确保 U 盘【已拔出】。")
-    input("        确认拔出后，按回车键开始抓包...")
+    if confirm_callback:
+        # GUI模式：使用回调函数
+        if not confirm_callback("请确认", "请确保 U 盘已拔出，然后点击确定开始抓包"):
+            print("[取消] 用户取消操作")
+            return False
+    else:
+        # CLI模式：使用input()
+        input("        确认拔出后，按回车键开始抓包...")
 
     # 2. 启动 Tshark (捕获枚举)
     print(f"Step 2: 启动监听接口 {interface}...")
