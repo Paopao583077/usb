@@ -7,23 +7,63 @@ from collections import defaultdict
 
 def calculate_similarity(feature1, feature2):
     """
-    计算两个特征的相似度（使用归一化欧氏距离）
+    计算两个特征的相似度（改进算法 - 更严格的区分度）
     
     返回相似度分数 (0-100)，越高越相似
+    
+    改进点：
+    1. 增加相对差异判断（百分比差异）
+    2. 提高归一化差异的惩罚系数
+    3. 添加变异系数检查（数据质量评估）
+    4. 采用更严格的评分策略（取最小值）
     """
     if not feature1 or not feature2:
         return 0.0
     
-    # 计算归一化差异
-    diff = abs(feature1['mean'] - feature2['mean'])
-    # 使用两者标准差的平均值作为归一化因子
-    std_avg = (feature1['std'] + feature2['std']) / 2
-    if std_avg == 0:
-        std_avg = 0.001  # 避免除零
+    mean1 = feature1['mean']
+    mean2 = feature2['mean']
+    std1 = feature1['std']
+    std2 = feature2['std']
     
-    # 归一化差异，并转换为相似度分数
-    normalized_diff = diff / std_avg
-    similarity = max(0, 100 - normalized_diff * 10)
+    # 1. 计算绝对差异
+    abs_diff = abs(mean1 - mean2)
+    
+    # 2. 计算相对差异（百分比）
+    mean_avg = (mean1 + mean2) / 2
+    if mean_avg == 0:
+        return 0.0
+    
+    relative_diff_ratio = abs_diff / mean_avg
+    
+    # 3. 计算归一化差异（标准差归一化）
+    std_avg = (std1 + std2) / 2
+    if std_avg == 0:
+        std_avg = 0.001
+    
+    normalized_diff = abs_diff / std_avg
+    
+    # 4. 相对差异得分
+    # 20%差异 → 60分，50%差异 → 0分
+    # 这样可以防止均值差距大的设备被误判为相似
+    relative_score = max(0, 100 - relative_diff_ratio * 200)
+    
+    # 5. 归一化差异得分
+    # 提高惩罚系数从10到20，使评分更严格
+    normalized_score = max(0, 100 - normalized_diff * 20)
+    
+    # 6. 取较严格的分数（两个条件都要满足）
+    # 这确保了即使一个条件通过，另一个不通过也会被拒绝
+    similarity = min(relative_score, normalized_score)
+    
+    # 7. 变异系数检查（数据质量评估）
+    # CV = std / mean，表示数据的波动程度
+    cv1 = std1 / mean1 if mean1 > 0 else 0
+    cv2 = std2 / mean2 if mean2 > 0 else 0
+    cv_avg = (cv1 + cv2) / 2
+    
+    # 如果变异系数过大（>1.5），说明数据不稳定，降低可信度
+    if cv_avg > 1.5:
+        similarity *= 0.8  # 降低20%相似度
     
     return similarity
 

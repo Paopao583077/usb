@@ -113,9 +113,15 @@ def process_pcap_file(pcap_path):
                 enum_end_time = timestamp
                 if enum_start_time:
                     duration = enum_end_time - enum_start_time
-                    # 合理的枚举时间应该在0.01秒到2秒之间
-                    if 0.01 < duration < 2.0:
+                    # 放宽合理范围：0.001秒到5秒（原来是0.01-2.0）
+                    # 这样可以捕获更多的枚举情况
+                    if 0.001 < duration < 5.0:
                         enum_val = duration
+                        print(f"    [调试] 枚举时间: {duration:.4f}s")
+                    else:
+                        print(f"    [调试] 枚举时间被过滤: {duration:.4f}s (范围: 0.001-5.0s)")
+                else:
+                    print(f"    [调试] 未找到Control包，无法计算枚举时间")
 
 
 
@@ -147,9 +153,6 @@ def process_pcap_file(pcap_path):
         cap.close()
         print(f"    [调试] 总包数: {packet_index}, 枚举时间: {enum_val}, 传输分组数: {len(transfer_raw_data)}")
         print(f"    [调试] Bulk包: {bulk_count}, Submit: {submit_count}, Complete: {complete_count}, 匹配: {matched_count}")
-        if enum_start_time and enum_end_time and not enum_val:
-            actual_duration = enum_end_time - enum_start_time
-            print(f"    [调试] 枚举时间被过滤: {actual_duration:.4f}s (范围: 0.01-2.0s)")
         if transfer_raw_data:
             for length, times in list(transfer_raw_data.items())[:3]:
                 print(f"    [调试] 长度{length}: {len(times)}个样本")
