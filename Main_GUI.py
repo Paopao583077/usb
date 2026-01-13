@@ -375,21 +375,46 @@ class USBFingerprintGUI:
         )
         common_frame.pack(fill=X, padx=20, pady=10)
         
-        # 目标设备ID
-        device_row = ttk_bs.Frame(common_frame)
-        device_row.pack(fill=X, pady=5)
-        ttk_bs.Label(device_row, text="目标设备ID:", width=12).pack(side=LEFT)
+        # 认证模式选择
+        auth_type_frame = ttk_bs.Frame(common_frame)
+        auth_type_frame.pack(fill=X, pady=5)
+        ttk_bs.Label(auth_type_frame, text="认证模式:", width=12).pack(side=LEFT)
+        
+        self.auth_type = tk.StringVar(value="one_to_many")  # 默认一对多
+        ttk_bs.Radiobutton(
+            auth_type_frame,
+            text="🔍 一对多 (自动匹配数据库中最相似的设备)",
+            variable=self.auth_type,
+            value="one_to_many",
+            bootstyle="success-toolbutton",
+            command=self.toggle_auth_type
+        ).pack(anchor=W, pady=2)
+        
+        ttk_bs.Radiobutton(
+            auth_type_frame,
+            text="🎯 一对一 (验证是否为指定设备)",
+            variable=self.auth_type,
+            value="one_to_one",
+            bootstyle="success-toolbutton",
+            command=self.toggle_auth_type
+        ).pack(anchor=W, pady=2)
+        
+        # 目标设备ID（仅一对一模式显示）
+        self.device_id_frame = ttk_bs.Frame(common_frame)
+        self.device_id_frame.pack(fill=X, pady=5)
+        ttk_bs.Label(self.device_id_frame, text="目标设备ID:", width=12).pack(side=LEFT)
         self.auth_device_id_var = tk.StringVar()
         ttk_bs.Entry(
-            device_row,
+            self.device_id_frame,
             textvariable=self.auth_device_id_var,
             bootstyle="success"
         ).pack(side=LEFT, fill=X, expand=YES, padx=5)
         ttk_bs.Label(
-            device_row,
-            text="(留空则与所有设备对比)",
+            self.device_id_frame,
+            text="(验证是否为此设备)",
             bootstyle="secondary"
         ).pack(side=LEFT)
+        self.device_id_frame.pack_forget()  # 默认隐藏
         
         # 阈值
         threshold_row = ttk_bs.Frame(common_frame)
@@ -698,6 +723,16 @@ class USBFingerprintGUI:
             self.file_auth_frame.pack_forget()
             self.live_auth_frame.pack(fill=X, padx=20, pady=10)
     
+    def toggle_auth_type(self):
+        """切换认证类型显示（一对一/一对多）"""
+        if self.auth_type.get() == "one_to_one":
+            # 一对一模式：显示设备ID输入框
+            self.device_id_frame.pack(fill=X, pady=5)
+        else:
+            # 一对多模式：隐藏设备ID输入框
+            self.device_id_frame.pack_forget()
+            self.auth_device_id_var.set("")  # 清空设备ID
+    
     def update_threshold_label(self, *args):
         """更新阈值显示标签"""
         self.threshold_label.config(text=f"{self.auth_threshold_var.get():.1f}")
@@ -970,32 +1005,54 @@ class USBFingerprintGUI:
             self.is_processing = False
             
             # 检查采集失败的情况
-            if result is None or result [0] is None:
+            if result is None or result[0] is None:
                 messagebox.showerror("错误", "采集失败，无法继续认证")
                 self.auth_result_label.config(text="采集失败", bootstyle="danger")
                 self.status_label.config(text="就绪")
                 return
             
             passed, match_id, score = result
+            auth_type = self.auth_type.get()  # 获取认证模式
             
             if passed:
-                result_text = f"✓ 认证通过\n\n匹配设备: {match_id}\n相似度: {score:.2f}%\n\n建议操作: 允许访问"
+                # 认证通过
+                if auth_type == "one_to_one":
+                    # 一对一模式
+                    result_text = f"✓ 认证通过\n\n确认为设备: {match_id}\n相似度: {score:.2f}%\n\n判定: 是指定设备"
+                else:
+                    # 一对多模式
+                    result_text = f"✓ 认证通过\n\n匹配设备: {match_id}\n相似度: {score:.2f}%\n\n判定: 已在数据库中找到匹配"
+                
                 self.auth_result_label.config(
                     text=result_text,
                     bootstyle="success"
                 )
-                messagebox.showinfo("认证通过", f"设备 '{match_id}' 认证成功！\n相似度: {score:.2f}%")
-            else:
-                if match_id:
-                    result_text = f"✗ 认证失败\n\n最佳匹配: {match_id}\n相似度: {score:.2f}%\n阈值: {threshold:.1f}%\n\n建议操作: 阻止访问"
+                
+                if auth_type == "one_to_one":
+                    messagebox.showinfo("认证通过", f"设备确认为 '{match_id}'！\n相似度: {score:.2f}%")
                 else:
-                    result_text = f"✗ 认证失败\n\n未找到匹配设备\n\n建议操作: 阻止访问"
+                    messagebox.showinfo("认证通过", f"找到匹配设备: '{match_id}'！\n相似度: {score:.2f}%")
+            else:
+                # 认证失败
+                if match_id:
+                    if auth_type == "one_to_one":
+                        # 一对一模式失败
+                        result_text = f"✗ 认证失败\n\n不是指定设备\n最接近设备: {match_id}\n相似度: {score:.2f}%\n阈值: {threshold:.1f}%\n\n判定: 设备不匹配"
+                    else:
+                        # 一对多模式失败
+                        result_text = f"✗ 认证失败\n\n最接近设备: {match_id}\n相似度: {score:.2f}%\n阈值: {threshold:.1f}%\n\n判定: 未找到可靠匹配"
+                else:
+                    result_text = f"✗ 认证失败\n\n未找到匹配设备\n\n判定: 数据库中无此设备"
                 
                 self.auth_result_label.config(
                     text=result_text,
                     bootstyle="danger"
                 )
-                messagebox.showwarning("认证失败", "设备认证失败，可能是未授权设备")
+                
+                if auth_type == "one_to_one":
+                    messagebox.showwarning("认证失败", "不是指定设备，可能是未授权设备")
+                else:
+                    messagebox.showwarning("认证失败", "未在数据库中找到匹配设备")
             
             self.status_label.config(text="就绪")
         
