@@ -723,6 +723,25 @@ class USBFingerprintGUI:
         if file:
             self.tshark_path_var.set(file)
     
+    def clear_enroll_folder(self):
+        """清空enroll文件夹中的所有pcapng文件"""
+        try:
+            enroll_path = os.path.join(self.config['base_folder'], 'enroll')
+            if os.path.exists(enroll_path):
+                files = [f for f in os.listdir(enroll_path) if f.endswith('.pcapng')]
+                for file in files:
+                    file_path = os.path.join(enroll_path, file)
+                    try:
+                        os.remove(file_path)
+                        print(f"[清理] 已删除: {file}")
+                    except Exception as e:
+                        print(f"[警告] 无法删除 {file}: {e}")
+                
+                if files:
+                    print(f"[√] 已清空enroll文件夹，删除了 {len(files)} 个文件")
+        except Exception as e:
+            print(f"[警告] 清空enroll文件夹时出错: {e}")
+    
     # ==================== 业务逻辑方法 ====================
     
     def run_file_registration(self):
@@ -768,6 +787,8 @@ class USBFingerprintGUI:
                 messagebox.showinfo("成功", f"设备 '{device_name}' 注册成功！")
                 self.load_database_list()
                 self.update_status_bar()
+                # 清空enroll文件夹
+                self.clear_enroll_folder()
             else:
                 messagebox.showerror("失败", "设备注册失败，请查看日志")
             self.status_label.config(text="就绪")
@@ -847,6 +868,8 @@ class USBFingerprintGUI:
                 messagebox.showinfo("成功", f"设备 '{device_name}' 录入成功！")
                 self.load_database_list()
                 self.update_status_bar()
+                # 清空enroll文件夹
+                self.clear_enroll_folder()
             else:
                 messagebox.showwarning("警告", "采集完成，但注册失败，请查看日志")
             self.status_label.config(text="就绪")
