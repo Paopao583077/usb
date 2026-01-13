@@ -1,4 +1,5 @@
 """
+创建前端界面
 USB 设备指纹识别系统 - GUI版本
 基于tkinter + ttkbootstrap的图形界面
 """
