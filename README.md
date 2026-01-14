@@ -51,7 +51,6 @@ usb/
 ├── config.json                # 系统配置文件
 ├── usb_fingerprint_db.json    # 指纹数据库
 ├── 技术原理与数学模型.md      # 技术文档（答辩参考）
-├── AGENTS.md                  # 开发者指南
 ├── utils/                     # 📦 核心功能模块
 │   ├── FeatureExtractor.py    # 特征提取引擎（优化提取）
 │   ├── Authenticate.py        # 设备认证模块（改进算法）
