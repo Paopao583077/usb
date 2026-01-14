@@ -1,7 +1,7 @@
 import json
 import os
 import time
-import FeatureExtractor  # 调用核心算法库
+from utils import FeatureExtractor
 from collections import defaultdict
 
 

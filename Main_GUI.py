@@ -5,20 +5,15 @@ USB 设备指纹识别系统 - GUI版本
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog, scrolledtext
+from tkinter import messagebox, filedialog, scrolledtext
 import ttkbootstrap as ttk_bs
 from ttkbootstrap.constants import *
 import json
 import os
 import sys
-import threading
-from datetime import datetime
 
 # 导入后端模块
-import Register
-import Authenticate
-import AutoCatch
-import gui_utils
+from utils import Authenticate, AutoCatch, gui_utils, Register
 
 
 class USBFingerprintGUI:

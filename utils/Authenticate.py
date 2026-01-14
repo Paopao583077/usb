@@ -1,7 +1,7 @@
 import json
 import os
 import numpy as np
-import FeatureExtractor
+from utils import FeatureExtractor
 from collections import defaultdict
 
 
@@ -244,7 +244,7 @@ if __name__ == "__main__":
     # 测试代码
     result = authenticate_device(
         auth_folder="devices/auth",
-        db_file="usb_fingerprint_db.json",
+        db_file="../usb_fingerprint_db.json",
         device_id=None,  # 与所有设备比对
         threshold=70.0
     )

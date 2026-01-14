@@ -1,6 +1,4 @@
-import AutoCatch
-import Register
-import Authenticate  # 导入认证模块
+from utils import Authenticate, AutoCatch, Register
 import os
 import sys
 
